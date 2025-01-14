@@ -1,8 +1,11 @@
+const express = require("express");
 const ExcelJS = require("exceljs");
 const fs = require("fs");
 const telegramBot = require("node-telegram-bot-api");
 const dotenv = require("dotenv");
 dotenv.config();
+const app = express();
+const port = process.env.PORT || 3000;
 
 const token = process.env.TOKEN;
 const bot = new telegramBot(token, { polling: true });
@@ -181,4 +184,8 @@ bot.on("callback_query", async (query) => {
       inlineKeyboard
     );
   }
+});
+
+app.listen(port, () => {
+  console.log(`Server is running on port ${port}`);
 });
