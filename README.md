@@ -1,1 +1,1 @@
-# This is bot send contract
+# This bot sends a contract

@@ -37,11 +37,12 @@ function initializeWorksheet() {
     { header: "Sana", key: "date", width: 20 },
     { header: "Bank nomi", key: "recipient", width: 30 },
     { header: "Kimga olgan", key: "contact", width: 30 },
+    { header: "Telefon raqam", key: "phone", width: 40 },
   ];
 }
 
 // Qatorga yangi shartnomani qo'shish
-function addNewRow({ recipient, contact }) {
+function addNewRow({ recipient, contact, phone }) {
   const currentDate = new Date().toLocaleDateString();
 
   // Oxirgi qator raqamini aniqlash
@@ -54,6 +55,7 @@ function addNewRow({ recipient, contact }) {
     date: currentDate,
     recipient: recipient,
     contact: contact,
+    phone: phone,
   });
 
   // Excel faylini saqlaymiz
@@ -83,9 +85,11 @@ bot.setMyCommands([
   { command: "/start", description: "Bu bot sizga shartnomalar yuboradi" },
 ]);
 
+let userPhoneNumber = null;
 bot.on("contact", async (msg) => {
   const chatId = msg.chat.id;
   const contact = msg.contact;
+  userPhoneNumber = msg.contact.phone_number;
   await bot.sendMessage(
     chatId,
     `Rahmat! Contact: ${contact.first_name} ${contact.phone_number}`
@@ -141,7 +145,7 @@ bot.on("callback_query", async (query) => {
         const secondRow = worksheetContract.getRow(2);
         secondRow.getCell(
           1
-        ).value = `${today} yil                                                                                                                Chela shaxri`;
+        ).value = `${today} yil                                                                                                                Chelak shaxri`;
         secondRow.commit(); // Commit the changes
         if (query.data === "/asaka" || query.data === "/hamkor") {
           const thirdRow = worksheetContract.getRow(55);
@@ -159,8 +163,8 @@ bot.on("callback_query", async (query) => {
           const fivethRow = worksheetContract.getRow(57);
           fivethRow.getCell(1).value =
             query.data === "/hamkor"
-              ? `MFO: 00083 STIR: 301409057`
-              : `MFO: 00873 STIR: 301409058`;
+              ? `MFO: 00083   STIR: 301409058`
+              : `MFO: 00873   STIR: 301409058`;
           fivethRow.commit(); // Commit the changes
         }
 
@@ -173,6 +177,7 @@ bot.on("callback_query", async (query) => {
     addNewRow({
       recipient: query.data === "/hamkor" ? "Hamkor bank" : "Asaka bank",
       contact: `${query.from.first_name} ${query.from.last_name}`,
+      phone: userPhoneNumber,
     });
     await bot.sendDocument(chatId, "./contract.xlsx", {
       caption: `${today} yildagi ${contractNumber}-son shartnoma.`,
