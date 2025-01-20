@@ -123,7 +123,7 @@ bot.on("callback_query", async (query) => {
   if (query.data === "/hamkor" || query.data === "/asaka") {
     bot.sendMessage(chatId, "shartnoma yuborilmoqda...");
     const contractNumber = worksheet.rowCount;
-    const today = new Date().toLocaleDateString();
+    const today = new Date().toLocaleDateString("uz-UZ");
 
     await workbookContract.xlsx
       .readFile(fileNameContract)
