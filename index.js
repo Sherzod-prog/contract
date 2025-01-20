@@ -37,12 +37,11 @@ function initializeWorksheet() {
     { header: "Sana", key: "date", width: 20 },
     { header: "Bank nomi", key: "recipient", width: 30 },
     { header: "Kimga olgan", key: "contact", width: 30 },
-    { header: "Telefon raqam", key: "phone", width: 40 },
   ];
 }
 
 // Qatorga yangi shartnomani qo'shish
-function addNewRow({ recipient, contact, phone }) {
+function addNewRow({ recipient, contact }) {
   const currentDate = new Date().toLocaleDateString();
 
   // Oxirgi qator raqamini aniqlash
@@ -55,7 +54,6 @@ function addNewRow({ recipient, contact, phone }) {
     date: currentDate,
     recipient: recipient,
     contact: contact,
-    phone: phone,
   });
 
   // Excel faylini saqlaymiz
@@ -85,11 +83,9 @@ bot.setMyCommands([
   { command: "/start", description: "Bu bot sizga shartnomalar yuboradi" },
 ]);
 
-let userPhoneNumber = null;
 bot.on("contact", async (msg) => {
   const chatId = msg.chat.id;
   const contact = msg.contact;
-  userPhoneNumber = msg.contact.phone_number;
   await bot.sendMessage(
     chatId,
     `Rahmat! Contact: ${contact.first_name} ${contact.phone_number}`
@@ -139,7 +135,9 @@ bot.on("callback_query", async (query) => {
           return;
         }
         const firstRow = worksheetContract.getRow(1);
-        firstRow.getCell(1).value = `Hisob-varaq shartnoma ${contractNumber}`;
+        firstRow.getCell(1).value = `Hisob-varaq shartnoma ${
+          contractNumber + 1
+        }`;
         firstRow.commit(); // Commit the changes
 
         const secondRow = worksheetContract.getRow(2);
@@ -176,11 +174,10 @@ bot.on("callback_query", async (query) => {
 
     addNewRow({
       recipient: query.data === "/hamkor" ? "Hamkor bank" : "Asaka bank",
-      contact: `${query.from.first_name} ${query.from.last_name}`,
-      phone: userPhoneNumber,
+      contact: `${query.from.first_name}`,
     });
     await bot.sendDocument(chatId, "./contract.xlsx", {
-      caption: `${today} yildagi ${contractNumber}-son shartnoma.`,
+      caption: `${today} yildagi ${contractNumber + 1}-son shartnoma.`,
     });
     bot.sendMessage(chatId, "Shartnoma yuborildi.");
     await bot.sendMessage(
