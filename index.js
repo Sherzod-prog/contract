@@ -16,6 +16,12 @@ let worksheet;
 const fileNameContract = "contract.xlsx";
 let workbookContract = new ExcelJS.Workbook();
 
+function logToFile(message) {
+  const timestamp = new Date().toISOString();
+  fs.appendFile("bot.log", `[${timestamp}] ${message}\n`, (err) => {
+    if (err) console.error("Log yozishda xatolik:", err);
+  });
+}
 // Fayl mavjud bo'lsa uni yuklaymiz, bo'lmasa yangi fayl yaratamiz
 if (fs.existsSync(fileName)) {
   workbook.xlsx.readFile(fileName).then(() => {
@@ -58,6 +64,7 @@ function addNewRow({ recipient, contact }) {
 
   // Excel faylini saqlaymiz
   workbook.xlsx.writeFile(fileName).then(() => {
+    logToFile(`Yangi shartnoma ${nextId}-qatorga qo'shildi.`);
     console.log(`Yangi shartnoma ${nextId}-qatorga qo'shildi.`);
   });
 }
@@ -121,7 +128,7 @@ bot.on("message", async (msg) => {
 bot.on("callback_query", async (query) => {
   const chatId = query.message.chat.id;
   if (query.data === "/hamkor" || query.data === "/asaka") {
-    bot.sendMessage(chatId, "shartnoma yuborilmoqda...");
+    await bot.sendMessage(chatId, "shartnoma yuborilmoqda...");
     const contractNumber = worksheet.rowCount;
     const today = new Date().toLocaleDateString("uz-UZ");
 
@@ -169,6 +176,7 @@ bot.on("callback_query", async (query) => {
         return workbookContract.xlsx.writeFile(fileNameContract);
       })
       .catch((error) => {
+        logToFile(`Error reading file: ${error}`);
         console.error("Error reading file:", error);
       });
 
