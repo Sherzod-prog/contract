@@ -65,7 +65,6 @@ function addNewRow({ recipient, contact }) {
   // Excel faylini saqlaymiz
   workbook.xlsx.writeFile(fileName).then(() => {
     logToFile(`Yangi shartnoma ${nextId}-qatorga qo'shildi.`);
-    console.log(`Yangi shartnoma ${nextId}-qatorga qo'shildi.`);
   });
 }
 
@@ -187,7 +186,7 @@ bot.on("callback_query", async (query) => {
     await bot.sendDocument(chatId, "./contract.xlsx", {
       caption: `${today} yildagi ${contractNumber + 1}-son shartnoma.`,
     });
-    bot.sendMessage(chatId, "Shartnoma yuborildi.");
+    await bot.sendMessage(chatId, "Shartnoma yuborildi.");
     await bot.sendMessage(
       chatId,
       "Shartnoma qaysi bank uchun kerak?",
