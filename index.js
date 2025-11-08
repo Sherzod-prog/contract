@@ -106,7 +106,6 @@ bot.on("callback_query", async (query) => {
       }
     );
     const today = new Date().toLocaleDateString("uz-UZ");
-    console.log(lastRow);
 
     await workbookContract.xlsx
       .readFile(fileNameContract)
@@ -154,9 +153,17 @@ bot.on("callback_query", async (query) => {
         console.error("Error reading file:", error);
       });
 
-    await bot.sendDocument(chatId, "./contract.xlsx", {
-      caption: `${today} yildagi ${lastRow}-son shartnoma.`,
-    });
+    await bot.sendDocument(
+      chatId,
+      "./contract.xlsx",
+      {
+        caption: `${today} yildagi ${lastRow}-son shartnoma.`,
+      },
+      {
+        contentType:
+          "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      }
+    );
     await bot.sendMessage(chatId, "Shartnoma yuborildi.");
     await bot.sendMessage(
       chatId,
