@@ -1,17 +1,16 @@
 const express = require("express");
+const telegramBot = require("node-telegram-bot-api");
 const ExcelJS = require("exceljs");
 const fs = require("fs");
-const telegramBot = require("node-telegram-bot-api");
+const { pool } = require("./db");
 const dotenv = require("dotenv");
 dotenv.config();
 const app = express();
 const port = process.env.PORT || 3000;
 
-const token = process.env.TOKEN;
+const token = process.env.BOT_TOKEN;
 const bot = new telegramBot(token, { polling: true });
 
-const fileName = "shartnomalar.xlsx";
-let workbook = new ExcelJS.Workbook();
 let worksheet;
 const fileNameContract = "contract.xlsx";
 let workbookContract = new ExcelJS.Workbook();
@@ -23,50 +22,6 @@ function logToFile(message) {
   });
 }
 // Fayl mavjud bo'lsa uni yuklaymiz, bo'lmasa yangi fayl yaratamiz
-if (fs.existsSync(fileName)) {
-  workbook.xlsx.readFile(fileName).then(() => {
-    worksheet = workbook.getWorksheet("shartnoma");
-    if (!worksheet) {
-      worksheet = workbook.addWorksheet("shartnoma");
-      initializeWorksheet();
-    }
-  });
-} else {
-  worksheet = workbook.addWorksheet("shartnoma");
-  initializeWorksheet();
-}
-
-// Ish varag'ini boshlang'ich holatga keltiramiz
-function initializeWorksheet() {
-  worksheet.columns = [
-    { header: "Tartib raqami", key: "id", width: 15 },
-    { header: "Sana", key: "date", width: 20 },
-    { header: "Bank nomi", key: "recipient", width: 30 },
-    { header: "Kimga olgan", key: "contact", width: 30 },
-  ];
-}
-
-// Qatorga yangi shartnomani qo'shish
-function addNewRow({ recipient, contact }) {
-  const currentDate = new Date().toLocaleDateString();
-
-  // Oxirgi qator raqamini aniqlash
-  const lastRowNumber = worksheet.rowCount;
-  const nextId = lastRowNumber ? lastRowNumber + 1 : 1;
-
-  // Yangi qator qo'shamiz
-  worksheet.addRow({
-    id: nextId,
-    date: currentDate,
-    recipient: recipient,
-    contact: contact,
-  });
-
-  // Excel faylini saqlaymiz
-  workbook.xlsx.writeFile(fileName).then(() => {
-    logToFile(`Yangi shartnoma ${nextId}-qatorga qo'shildi.`);
-  });
-}
 
 const inlineKeyboard = {
   reply_markup: {
@@ -74,11 +29,11 @@ const inlineKeyboard = {
       [
         {
           text: "Hamkor bank",
-          callback_data: "/hamkor",
+          callback_data: "hamkor",
         },
         {
           text: "Asaka bank",
-          callback_data: "/asaka",
+          callback_data: "asaka",
         },
       ],
     ],
@@ -126,10 +81,32 @@ bot.on("message", async (msg) => {
 });
 bot.on("callback_query", async (query) => {
   const chatId = query.message.chat.id;
-  if (query.data === "/hamkor" || query.data === "/asaka") {
+  let lastRow;
+  if (query.data === "hamkor" || query.data === "asaka") {
     await bot.sendMessage(chatId, "shartnoma yuborilmoqda...");
-    const contractNumber = worksheet.rowCount;
+
+    pool.query(
+      `INSERT INTO contracts (date, bank_name, contact) VALUES ($1, $2, $3)`,
+      [
+        new Date().toLocaleDateString("uz-UZ"),
+        query.data === "hamkor" ? "Hamkor bank" : "Asaka bank",
+        `${query.from.first_name}`,
+      ]
+    );
+    // DB dagi oxirgi qatorni olish
+    pool.query(
+      "SELECT * FROM contracts ORDER BY id DESC LIMIT 1",
+      (err, res) => {
+        if (err) {
+          console.error("Xatolik yuz berdi:", err);
+          return;
+        }
+        const { id } = res.rows[0];
+        lastRow = id;
+      }
+    );
     const today = new Date().toLocaleDateString("uz-UZ");
+    console.log(lastRow);
 
     await workbookContract.xlsx
       .readFile(fileNameContract)
@@ -141,9 +118,7 @@ bot.on("callback_query", async (query) => {
           return;
         }
         const firstRow = worksheetContract.getRow(1);
-        firstRow.getCell(1).value = `Hisob-varaq shartnoma ${
-          contractNumber + 1
-        }`;
+        firstRow.getCell(1).value = `Hisob-varaq shartnoma ${lastRow}`;
         firstRow.commit(); // Commit the changes
 
         const secondRow = worksheetContract.getRow(2);
@@ -179,17 +154,13 @@ bot.on("callback_query", async (query) => {
         console.error("Error reading file:", error);
       });
 
-    addNewRow({
-      recipient: query.data === "/hamkor" ? "Hamkor bank" : "Asaka bank",
-      contact: `${query.from.first_name}`,
-    });
     await bot.sendDocument(chatId, "./contract.xlsx", {
-      caption: `${today} yildagi ${contractNumber + 1}-son shartnoma.`,
+      caption: `${today} yildagi ${lastRow}-son shartnoma.`,
     });
     await bot.sendMessage(chatId, "Shartnoma yuborildi.");
     await bot.sendMessage(
       chatId,
-      "Shartnoma qaysi bank uchun kerak?",
+      "Yangi shartnoma qaysi bank uchun kerak?",
       inlineKeyboard
     );
   }
